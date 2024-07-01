@@ -1,13 +1,32 @@
+// Project Type
+// creating class in order to be able to instantiate it
+enum ProjectStatus {
+  Active,
+  Finished,
+}
+class Project {
+  constructor(
+    public id: string,
+    public title: string,
+    public description: string,
+    public people: number,
+    public status: ProjectStatus
+  ) {}
+}
+
+type Listener = (items: Project[]) => void;
+
 // Project State Management class
 // Singleton Pattern - only one instance of the class is created
 
 class ProjectState {
-  private listeners: any[] = [];
-  private projects: any[] = [];
+  //listener functions array
+  private listeners: Listener[] = [];
+  private projects: Project[] = [];
   private static instance: ProjectState;
 
   private constructor() {}
-
+  // static means that the method is accessible without an instance of the class
   static getInstance() {
     if (!this.instance) {
       this.instance = new ProjectState();
@@ -15,25 +34,29 @@ class ProjectState {
     return this.instance;
   }
 
-  addListener(listenerFn: Function) {
+  addListener(listenerFn: Listener) {
     this.listeners.push(listenerFn);
   }
-
+  // every time the addProject method is called, the listener functions are executed
   addProject(title: string, description: string, numOfPeople: number) {
-    const newProject = { // Corrected from `const new Project`
-      id: Math.random().toString(),
-      title: title,
-      description: description,
-      people: numOfPeople,
-    };
+    const newProject = new Project(
+      Math.random().toString(),
+      title,
+      description,
+      numOfPeople,
+      // every project active by default
+      ProjectStatus.Active
+    );
     this.projects.push(newProject);
     for (const listenerFn of this.listeners) {
+      // passing a copy of the listener func
+      // executing the listener functions
       listenerFn(this.projects.slice());
     }
   }
 }
-
-const projectState = ProjectState.getInstance(); // Corrected instantiation
+// initialize the ProjectState
+const projectState = ProjectState.getInstance();
 
 // Validation
 interface Validatable {
@@ -83,9 +106,11 @@ function validate(validatableInput: Validatable) {
 // autobind decorator
 // naming: hint that the parameter is not used
 function autobind(_: any, _2: string, descriptor: PropertyDescriptor) {
+  // descriptor.value is the original method
   const originalMethod = descriptor.value;
   const adjDescriptor: PropertyDescriptor = {
     configurable: true,
+    // ensures that the method is bound to the correct this keyword
     get() {
       const boundFn = originalMethod.bind(this);
       return boundFn;
@@ -99,14 +124,15 @@ class ProjectList {
   templateElement: HTMLTemplateElement;
   hostElement: HTMLDivElement;
   element: HTMLElement;
-  assignedProjects: any[]; 
+  assignedProjects: Project[];
 
   constructor(private type: "active" | "finished") {
+    // choosing the elements out of the DOM
     this.templateElement = document.getElementById(
       "project-list"
     ) as HTMLTemplateElement;
     this.hostElement = document.getElementById("app")! as HTMLDivElement;
-    this.assignedProjects = []; 
+    this.assignedProjects = [];
 
     const importedNode = document.importNode(
       this.templateElement.content,
@@ -116,20 +142,22 @@ class ProjectList {
     // dynamic id
     this.element.id = `${this.type}-projects`;
 
-    projectState.addListener((projects: any[]) => {
+    // setting up the listener
+    projectState.addListener((projects: Project[]) => {
+      // projects from the projectState
       this.assignedProjects = projects;
       this.renderProjects();
-});
+    });
 
     this.attach();
     this.renderContent();
     this.renderProjects();
   }
   private renderProjects() {
-    const listEl = document.getElementById(`${this.type}-projects-list`);
-    listEl.innerHTML = ''; // Clear the list before rendering to avoid duplicates
+    const listEl = document.getElementById(`${this.type}-projects-list`)!;
+    listEl.innerHTML = ""; // Clear the list before rendering to avoid duplicates
     for (const prjItem of this.assignedProjects) {
-      const listItem = document.createElement('li');
+      const listItem = document.createElement("li");
       listItem.textContent = prjItem.title; // Assuming prjItem has a title property
       listEl.appendChild(listItem);
     }
@@ -144,7 +172,6 @@ class ProjectList {
   private attach() {
     this.hostElement.insertAdjacentElement("beforeend", this.element);
   }
-
 }
 
 // ProjectInput Class
@@ -234,7 +261,7 @@ class ProjectInput {
       this.clearInputs();
     }
   }
- 
+
   private clearInputs() {
     this.titleInputElement.value = "";
     this.descriptionInputElement.value = "";
