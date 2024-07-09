@@ -1,4 +1,4 @@
-namespace App {
+
   // component Base Class
   // abstract class - cannot be instantiated
   // class responsible for rendering sth and attaching it to the DOM
@@ -43,4 +43,4 @@ namespace App {
     abstract configure(): void;
     abstract renderContent(): void;
   }
-}
+
